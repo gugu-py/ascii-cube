@@ -11,8 +11,8 @@ const RotatingCube = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setA((prevA) => prevA + 0.02);
-      setB((prevB) => prevB + 0.01);
+      setA((prevA) => prevA + Math.random() * 0.1);
+      setB((prevB) => prevB + Math.random() * 0.1);
     }, 40);
     return () => clearInterval(interval);
   }, []);
