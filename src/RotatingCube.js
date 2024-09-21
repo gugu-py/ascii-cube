@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 
 // ASCII characters to represent brightness from darkest to brightest
-const brightnessChars = " .,-~:;=!*#$@";
+const brightnessChars = ".,-~:;=!*#$@";
 
 const RotatingCube = () => {
   const [asciiArt, setAsciiArt] = useState('');
@@ -11,9 +11,9 @@ const RotatingCube = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setA((prevA) => prevA + 0.03);
+      setA((prevA) => prevA + 0.04);
       setB((prevB) => prevB + 0.02);
-    }, 50);
+    }, 100);
     return () => clearInterval(interval);
   }, []);
 
@@ -25,26 +25,24 @@ const RotatingCube = () => {
   const generateAsciiCube = (A, B) => {
     // Cube vertices
     const vertices = [
-      [-1, -1, -1], // 0
-      [1, -1, -1],  // 1
-      [1, 1, -1],   // 2
-      [-1, 1, -1],  // 3
-      [-1, -1, 1],  // 4
-      [1, -1, 1],   // 5
-      [1, 1, 1],    // 6
-      [-1, 1, 1],   // 7
+      [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+      [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1],
     ];
+    // const vertices = [
+    //     [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5], [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5],
+    //     [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5],
+    //   ];
 
     // Projection constants
-    const K1 = 50; // Adjusted scaling factor
-    const K2 = 5;  // Distance to the viewer
-    const width = 100;  // Width of ASCII grid
-    const height = 100; // Height of ASCII grid
+    const K1 = 200; // Adjusted scaling factor for better fit
+    const K2 = 9;  // Distance to the viewer
+    const width = 100;  // Adjusted width of ASCII grid
+    const height = 100; // Adjusted height of ASCII grid
 
-    let zbuffer = Array.from({ length: width * height }, () => -Infinity);
+    let zbuffer = Array.from({ length: width * height }, () => 0);
     let output = Array.from({ length: width * height }, () => ' ');
 
-    // Rotation matrices for the X and Y axes
+    // Rotation matrices for the X and Z axes
     const rotateX = (point, angle) => {
       const [x, y, z] = point;
       const cosA = Math.cos(angle);
@@ -52,155 +50,107 @@ const RotatingCube = () => {
       return [x, y * cosA - z * sinA, y * sinA + z * cosA];
     };
 
-    const rotateY = (point, angle) => {
+    const rotateZ = (point, angle) => {
       const [x, y, z] = point;
       const cosB = Math.cos(angle);
       const sinB = Math.sin(angle);
-      return [x * cosB + z * sinB, y, -x * sinB + z * cosB];
+      return [x * cosB - y * sinB, x * sinB + y * cosB, z];
     };
 
-    // Light direction
+    // Light direction (arbitrary)
     const lightDir = [0, 1, -1];
 
     const project3D = (point) => {
       const [x, y, z] = point;
       const factor = K1 / (K2 + z); // Perspective projection
-      return [x * factor + width / 2, -y * factor + height / 2, z];
+      return [Math.floor((x * factor + width / 2)), Math.floor((y * factor + height / 2))];
     };
 
     const normalize = (v) => {
-      const length = Math.hypot(...v);
+      const length = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
       return v.map((i) => i / length);
     };
 
-    const dotProduct = (v1, v2) => v1.reduce((sum, val, i) => sum + val * v2[i], 0);
+    const dotProduct = (v1, v2) => v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 
     const calculateBrightness = (normal) => {
       const normalizedNormal = normalize(normal);
       const brightness = dotProduct(normalizedNormal, normalize(lightDir));
-      return brightness;
+      return Math.max(0, brightness); // Make sure brightness is non-negative
     };
 
-    // Cube faces defined by vertex indices and their normals
+    // Cube faces defined by vertex indices
     const faces = [
-      { indices: [0, 1, 2, 3], normal: [0, 0, -1] }, // Front face
-      { indices: [4, 5, 6, 7], normal: [0, 0, 1] },  // Back face
-      { indices: [1, 5, 6, 2], normal: [1, 0, 0] },  // Right face
-      { indices: [0, 3, 7, 4], normal: [-1, 0, 0] }, // Left face
-      { indices: [3, 2, 6, 7], normal: [0, 1, 0] },  // Top face
-      { indices: [0, 1, 5, 4], normal: [0, -1, 0] }, // Bottom face
+      [0, 1, 2, 3], [4, 5, 6, 7], // Front and back
+      [0, 1, 5, 4], [1, 2, 6, 5], // Sides
+      [2, 3, 7, 6], [3, 0, 4, 7], // Sides
     ];
 
     for (let face of faces) {
-      const { indices, normal } = face;
+      const v0 = rotateZ(rotateX(vertices[face[0]], A), B);
+      const v1 = rotateZ(rotateX(vertices[face[1]], A), B);
+      const v2 = rotateZ(rotateX(vertices[face[2]], A), B);
+      const v3 = rotateZ(rotateX(vertices[face[3]], A), B);
 
-      // Rotate normal
-      let rotatedNormal = rotateX(normal, A);
-      rotatedNormal = rotateY(rotatedNormal, B);
+      const p0 = project3D(v0);
+      const p1 = project3D(v1);
+      const p2 = project3D(v2);
+      const p3 = project3D(v3);
 
-      // Back-face culling
-      if (rotatedNormal[2] >= 0) continue; // Skip faces facing away from the viewer
-
-      const brightness = calculateBrightness(rotatedNormal);
-      if (brightness <= 0) continue; // Skip faces not lit
-
-      const luminanceIndex = Math.floor(brightness * (brightnessChars.length - 1));
-      const charToPlot = brightnessChars[luminanceIndex];
-
-      // Rotate and project vertices
-      const projectedVertices = indices.map((index) => {
-        let vertex = vertices[index];
-        vertex = rotateX(vertex, A);
-        vertex = rotateY(vertex, B);
-        return project3D(vertex);
-      });
-
-      // Triangulate the face
-      const triangles = [
-        [projectedVertices[0], projectedVertices[1], projectedVertices[2]],
-        [projectedVertices[0], projectedVertices[2], projectedVertices[3]],
+      // Calculate normal (cross product of edges)
+      const normal = [
+        (v1[1] - v0[1]) * (v2[2] - v0[2]) - (v1[2] - v0[2]) * (v2[1] - v0[1]),
+        (v1[2] - v0[2]) * (v2[0] - v0[0]) - (v1[0] - v0[0]) * (v2[2] - v0[2]),
+        (v1[0] - v0[0]) * (v2[1] - v0[1]) - (v1[1] - v0[1]) * (v2[0] - v0[0])
       ];
 
-      // Rasterize triangles
-      for (let triangle of triangles) {
-        rasterizeTriangle(triangle, zbuffer, output, charToPlot, width, height);
-      }
+      const brightness = calculateBrightness(normal);
+      const luminanceIndex = Math.floor(brightness * (brightnessChars.length - 1));
+
+      const charToPlot = brightnessChars[luminanceIndex];
+
+      // Draw each face's vertices
+      drawLine(p0, p1, zbuffer, output, charToPlot, width, height);
+      drawLine(p1, p2, zbuffer, output, charToPlot, width, height);
+      drawLine(p2, p3, zbuffer, output, charToPlot, width, height);
+      drawLine(p3, p0, zbuffer, output, charToPlot, width, height);
     }
 
     // Convert the output array into a string for rendering
-    return output.map((char, i) => (i % width === width - 1 ? char + '\n' : char)).join('');
+    return output.map((char, i) => (i % width === 0 ? '\n' + char : char)).join('');
   };
 
-  // Function to rasterize a triangle
-  const rasterizeTriangle = (triangle, zbuffer, output, charToPlot, width, height) => {
-    // Extract vertices
-    const [v0, v1, v2] = triangle;
+  // Bresenham's line algorithm to draw lines between two points in the ASCII grid
+  const drawLine = (p0, p1, zbuffer, output, charToPlot, width, height) => {
+    let [x0, y0] = p0;
+    let [x1, y1] = p1;
+    let dx = Math.abs(x1 - x0);
+    let dy = Math.abs(y1 - y0);
+    let sx = x0 < x1 ? 1 : -1;
+    let sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
 
-    // Convert to integer pixel coordinates
-    const x0 = Math.floor(v0[0]);
-    const y0 = Math.floor(v0[1]);
-    const z0 = v0[2];
-
-    const x1 = Math.floor(v1[0]);
-    const y1 = Math.floor(v1[1]);
-    const z1 = v1[2];
-
-    const x2 = Math.floor(v2[0]);
-    const y2 = Math.floor(v2[1]);
-    const z2 = v2[2];
-
-    // Compute bounding box
-    const minX = Math.max(0, Math.min(x0, x1, x2));
-    const maxX = Math.min(width - 1, Math.max(x0, x1, x2));
-    const minY = Math.max(0, Math.min(y0, y1, y2));
-    const maxY = Math.min(height - 1, Math.max(y0, y1, y2));
-
-    // Triangle area (double area)
-    const area = edgeFunction(x0, y0, x1, y1, x2, y2);
-
-    // Loop over bounding box
-    for (let y = minY; y <= maxY; y++) {
-      for (let x = minX; x <= maxX; x++) {
-        // Compute barycentric coordinates
-        const w0 = edgeFunction(x1, y1, x2, y2, x, y);
-        const w1 = edgeFunction(x2, y2, x0, y0, x, y);
-        const w2 = edgeFunction(x0, y0, x1, y1, x, y);
-
-        if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-          // Normalize weights
-          const alpha = w0 / area;
-          const beta = w1 / area;
-          const gamma = w2 / area;
-
-          // Interpolate depth
-          const z = alpha * z0 + beta * z1 + gamma * z2;
-
-          const idx = x + y * width;
-          if (z > zbuffer[idx]) {
-            zbuffer[idx] = z;
-            output[idx] = charToPlot;
-          }
-        }
+    while (true) {
+      const idx = x0 + y0 * width;
+      if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height && zbuffer[idx] < 1) {
+        zbuffer[idx] = 1; // Assume z = 1 for simplicity
+        output[idx] = charToPlot;
+      }
+      if (x0 === x1 && y0 === y1) break;
+      let e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        x0 += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        y0 += sy;
       }
     }
   };
 
-  // Edge function
-  const edgeFunction = (x0, y0, x1, y1, x2, y2) => {
-    return (x2 - x0) * (y1 - y0) - (x1 - x0) * (y2 - y0);
-  };
-
   return (
-    <pre style={{
-      fontFamily: 'monospace',
-      lineHeight: '8px',
-      fontSize: '12px',
-      color: 'white',
-      backgroundColor: 'black',
-      textAlign: 'center',
-      padding: '0',
-      margin: '0',
-    }}>
+    <pre style={{ fontFamily: 'monospace', lineHeight: '7px', fontSize: '12px', color: '#fff' }}>
       {asciiArt}
     </pre>
   );
