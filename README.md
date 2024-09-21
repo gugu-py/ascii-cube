@@ -1,70 +1,137 @@
-# Getting Started with Create React App
+# Rotating ASCII Cube in React
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React application that renders a rotating 3D cube using ASCII art, without using any prebuilt 3D libraries. The cube is displayed on a dark background and centered on the webpage. This project demonstrates fundamental 3D rendering techniques, including projection, rotation, and basic lighting, all implemented manually in JavaScript.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **Wireframe 3D Cube**: Renders a rotating cube by drawing its edges using ASCII characters.
+- **ASCII Art**: Utilizes ASCII characters to create a visual representation of the cube.
+- **Rotation**: Continuously rotates the cube around the X and Z axes.
+- **Basic Lighting**: Simulates lighting to vary the brightness of the cube's edges.
+- **No External 3D Libraries**: Built from scratch without using prebuilt 3D or graphics libraries.
 
-### `npm start`
+## Getting Started
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Prerequisites
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- **Node.js** (version 12 or higher)
+- **npm** (comes with Node.js)
 
-### `npm test`
+### Installation
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. **Clone the Repository**
 
-### `npm run build`
+   ```bash
+   git clone https://github.com/gugu-py/ascii-cube.git
+   cd rotating-ascii-cube
+   ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+2. **Install Dependencies**
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+   ```bash
+   npm install
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Running the Application
 
-### `npm run eject`
+Start the development server:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+npm start
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Open your browser and navigate to `http://localhost:3000` to view the application.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## How It Works
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 1. Cube Geometry
 
-## Learn More
+The cube is defined by eight vertices and twelve edges:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- **Vertices**: Points in 3D space representing the corners of the cube.
+- **Edges**: Lines connecting pairs of vertices to form the cube's structure.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 2. Rotation
 
-### Code Splitting
+Rotations are applied to the cube using rotation matrices around the X and Z axes:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```javascript
+const rotateX = (point, angle) => { /* ... */ };
+const rotateZ = (point, angle) => { /* ... */ };
+```
 
-### Analyzing the Bundle Size
+Angles `A` and `B` are updated over time to animate the rotation.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### 3. Projection
 
-### Making a Progressive Web App
+3D points are projected onto a 2D plane using a perspective projection formula:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```javascript
+const project3D = (point) => {
+  const [x, y, z] = point;
+  const factor = K1 / (K2 + z); // Perspective projection
+  return [Math.floor((x * factor) + width / 2), Math.floor((y * factor) + height / 2)];
+};
+```
 
-### Advanced Configuration
+- **K1**: Scaling factor to control the size of the projection.
+- **K2**: Distance from the viewer to the projection plane.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### 4. Drawing Edges
 
-### Deployment
+Edges are drawn between projected points using Bresenham's line algorithm:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```javascript
+const drawLine = (p0, p1, zbuffer, output, charToPlot, width, height) => { /* ... */ };
+```
 
-### `npm run build` fails to minify
+### 5. Lighting and Brightness
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- **Brightness Calculation**: For each edge, the brightness is calculated based on the cube's orientation relative to a light source.
+- **ASCII Characters**: Brightness levels are mapped to ASCII characters:
+
+  ```javascript
+  const brightnessChars = ".,-~:;=!*#$@";
+  ```
+
+## Project Structure
+
+- `src/RotatingCube.js`: Contains the main component that renders the rotating cube.
+- `src/App.js`: The main application component.
+- `public/index.html`: The HTML template.
+- `src/index.css`: Global styles.
+
+## Customization
+
+- **Adjusting Cube Size**: Modify `K1` and `K2` in `RotatingCube.js`.
+- **Changing Rotation Speed**: Adjust the increment values of `A` and `B` in the `setInterval` function.
+- **Altering Light Direction**: Modify the `lightDir` vector.
+- **ASCII Characters**: Customize the `brightnessChars` string to change shading.
+
+## Styling
+
+- **Dark Background**: The application uses a black background to enhance visibility.
+- **Centered Content**: The ASCII art is centered on the page.
+- **Global Styles**: Ensure the body has no margins and a black background:
+
+  ```css
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: black;
+  }
+  ```
+
+## Dependencies
+
+- **React**: A JavaScript library for building user interfaces.
+
+## License
+
+This project is open-source and available under the [MIT License](LICENSE).
+
+## Acknowledgments
+
+- Inspired by [a1k0n's Donut Code](https://www.a1k0n.net/2011/07/20/donut-math.html), which provides an in-depth explanation of rendering 3D objects using ASCII art.
+
+- Thanks ChatGPT for helping me with the code
